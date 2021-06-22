@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Quán Ông Running</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Quán Ông running</string>
+    <string name="nav_header_subtitle">Vì tương lai con em An Viên</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="menu_home">Home</string>
+    <string name="menu_gallery">Current Running</string>
+    <string name="menu_slideshow">Other</string>
+</resources>
