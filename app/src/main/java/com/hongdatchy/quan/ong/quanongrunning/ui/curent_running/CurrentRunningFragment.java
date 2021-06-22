@@ -3,6 +3,7 @@ package com.hongdatchy.quan.ong.quanongrunning.ui.curent_running;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -41,6 +42,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.hongdatchy.quan.ong.quanongrunning.Common;
 import com.hongdatchy.quan.ong.quanongrunning.LocalStorage;
+import com.hongdatchy.quan.ong.quanongrunning.MyService;
 import com.hongdatchy.quan.ong.quanongrunning.R;
 
 import org.jetbrains.annotations.NotNull;
@@ -52,22 +54,31 @@ import static com.google.android.gms.maps.GoogleMap.MAP_TYPE_HYBRID;
 
 
 public class CurrentRunningFragment extends Fragment implements OnMapReadyCallback {
+
     private final static int REQUEST_CODE = 101;
     private final static int RequestCheck =102;
+    private static boolean isGoBackRunning;
     private GoogleMap googleMap;
     ArrayList<LatLng> latLngList = new ArrayList<>();
-
     FusedLocationProviderClient fusedLocationProviderClient;
     LocationRequest locationRequest;
-
     FloatingActionButton createRunning, endRunning;
     Polyline line;
-
     LocationCallback locationCallback;
+    private static CurrentRunningFragment instance;
+
+
+    public static CurrentRunningFragment getInstance() {
+        return instance;
+    }
+
+    public static boolean isGoBackRunning() {
+        return isGoBackRunning;
+    }
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-
+        instance = this;
         View view = inflater.inflate(R.layout.fragment_current_running, container, false);
         SupportMapFragment supportMapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.google_map);
         assert supportMapFragment != null;
@@ -99,14 +110,16 @@ public class CurrentRunningFragment extends Fragment implements OnMapReadyCallba
                 break;
             case "running":
                 latLngList = Common.latLngList;
-                handelCreateRunning(true);
+                isGoBackRunning = true;
+                requireActivity().startService(new Intent(requireActivity(), MyService.class));
                 System.out.println("latLngList" + latLngList);
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLngList.get(latLngList.size() - 1), 16));
                 addMaker(latLngList.get(0), "Origin");
                 break;
         }
         createRunning.setOnClickListener(v -> {
-            handelCreateRunning(false);
+            isGoBackRunning = false;
+            requireActivity().startService(new Intent(getContext(), MyService.class));
         });
 
 
@@ -116,18 +129,17 @@ public class CurrentRunningFragment extends Fragment implements OnMapReadyCallba
             if(fusedLocationProviderClient != null){
                 Task<Void> voidTask = fusedLocationProviderClient.removeLocationUpdates(locationCallback);
                 System.out.println(voidTask);// must have this line to remove_location_update working !!!???
-
                 LocalStorage db = new LocalStorage();
                 db.update(latLngList, getContext());
                 LatLng lastOfList = latLngList.get(latLngList.size()-1);
                 addMaker(lastOfList, "Destination");
                 endRunning.setVisibility(View.GONE);
+                requireActivity().stopService(new Intent(requireActivity(), MyService.class));
             }
-//            Common.status = "end_running";
         });
     }
 
-    void handelCreateRunning(boolean isGoBackRunning){
+    public void handelCreateRunning(boolean isGoBackRunning){
         if (ActivityCompat.checkSelfPermission(requireActivity(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(requireActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             executionRunning(isGoBackRunning);
@@ -150,7 +162,7 @@ public class CurrentRunningFragment extends Fragment implements OnMapReadyCallba
             locationRequest = LocationRequest.create();
             locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
             locationRequest.setInterval(10000);
-            locationRequest.setFastestInterval(1000);
+            locationRequest.setFastestInterval(5000);
 
             if(!isGoBackRunning){
                 latLngList.clear();
